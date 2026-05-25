@@ -20,6 +20,6 @@
 
 # EC2 Instance resource
 resource "aws_instance" "this" {
-  ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI ID for us-east-1
+  ami           = "ami-0236922087fa98b6e" # Amazon Linux 2 AMI ID for us-east-1
   instance_type = var.instance_type
 }
