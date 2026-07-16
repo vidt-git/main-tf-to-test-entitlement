@@ -137,6 +137,17 @@ resource "aws_cloudtrail" "edge_case_trail" {
   depends_on     = [aws_s3_bucket_policy.cloudtrail_logs]
 }
 
+# SQS queue — tests DSL [conditional_ternary] PASS scenario.
+# Active only when active_scenario = "fifo_queue_pass".
+# FIFO queue → ternary resolves min_timeout = 60; timeout = 60 → 60 >= 60 → passes.
+resource "aws_sqs_queue" "fifo_compliant" {
+  count                       = var.active_scenario == "fifo_queue_pass" ? 1 : 0
+  name                        = "prod-example-queue.fifo"
+  fifo_queue                  = true
+  visibility_timeout_seconds  = 60
+  sqs_managed_sse_enabled     = true
+}
+
 # S3 module — tests DSL [missing_attrs] MODULE PASS scenario:
 # core::try(attrs.sse_algorithm, "AES256") returns "AES256" → policy passes.
 module "s3_compliant" {
