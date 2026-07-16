@@ -137,6 +137,17 @@ resource "aws_cloudtrail" "edge_case_trail" {
   depends_on     = [aws_s3_bucket_policy.cloudtrail_logs]
 }
 
+# SQS queue — tests DSL [conditional_ternary] FAIL scenario.
+# Active only when active_scenario = "fifo_queue_fail".
+# FIFO queue → ternary resolves min_timeout = 60; timeout = 30 → 30 < 60 → fails.
+resource "aws_sqs_queue" "fifo_non_compliant" {
+  count                      = var.active_scenario == "fifo_queue_fail" ? 1 : 0
+  name                       = "prod-non-compliant-queue.fifo"
+  fifo_queue                 = true
+  visibility_timeout_seconds = 30
+  sqs_managed_sse_enabled    = true
+}
+
 # SQS queue — tests DSL [conditional_ternary] PASS scenario.
 # Active only when active_scenario = "fifo_queue_pass".
 # FIFO queue → ternary resolves min_timeout = 60; timeout = 60 → 60 >= 60 → passes.
