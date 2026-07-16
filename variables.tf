@@ -6,6 +6,7 @@
 #   resource_cloudtrail_attr_fail — CloudTrail without enable_log_file_validation (resource [missing_attrs] FAIL)
 #   provider_region_fail          — activates aws.fail_region (ap-southeast-1, not in allowed list) via IAM role (provider [missing_attrs] FAIL)
 #   module_sse_fail               — S3 module with sse_algorithm = "aws:kms"; core::try returns it → != "AES256" → policy fails (module [missing_attrs] FAIL)
+#   edge_case_empty_attrs         — CloudTrail with only required attrs (name + s3_bucket_name); entire optional attrs absent → core::try returns false → policy fails
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string

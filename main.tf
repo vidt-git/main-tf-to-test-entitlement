@@ -126,6 +126,17 @@ resource "aws_cloudtrail" "compliance_trail" {
 #   depends_on     = [aws_s3_bucket_policy.cloudtrail_logs]
 # }
 
+# CloudTrail trail — tests DSL [missing_attrs] EDGE CASE scenario.
+# Active only when active_scenario = "edge_case_empty_attrs".
+# Only the two required attrs are set; the entire optional attrs block is absent.
+# core::try(attrs.enable_log_file_validation, false) → false → policy fails.
+resource "aws_cloudtrail" "edge_case_trail" {
+  count          = var.active_scenario == "edge_case_empty_attrs" ? 1 : 0
+  name           = "edge-case-trail"
+  s3_bucket_name = aws_s3_bucket.cloudtrail_logs.id
+  depends_on     = [aws_s3_bucket_policy.cloudtrail_logs]
+}
+
 # S3 module — tests DSL [missing_attrs] MODULE PASS scenario:
 # core::try(attrs.sse_algorithm, "AES256") returns "AES256" → policy passes.
 module "s3_compliant" {
