@@ -15,6 +15,12 @@ provider "aws" {
   region = var.region
 }
 
+# Provider without region — tests DSL [missing_attrs] provider FAIL scenario:
+# core::try(attrs.region, "") returns "" → not in allowed_regions → policy fails.
+provider "aws" {
+  alias = "no_region"
+}
+
 locals {
   # Create resource tags
   resource_tags = merge(
