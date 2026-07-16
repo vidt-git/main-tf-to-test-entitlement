@@ -87,15 +87,24 @@ resource "aws_s3_bucket_policy" "cloudtrail_logs" {
   })
 }
 
-# CloudTrail trail — tests DSL [missing_attrs]: policy uses
-# core::try(attrs.enable_log_file_validation, false) and this resource
-# explicitly sets it to true, so the policy should pass.
+# CloudTrail trail — tests DSL [missing_attrs] PASS scenario:
+# core::try(attrs.enable_log_file_validation, false) returns true → policy passes.
 resource "aws_cloudtrail" "compliance_trail" {
   name                          = var.compliance_trail_name
   s3_bucket_name                = aws_s3_bucket.cloudtrail_logs.id
   enable_log_file_validation    = true
   is_multi_region_trail         = true
   tags                          = local.resource_tags
+
+  depends_on = [aws_s3_bucket_policy.cloudtrail_logs]
+}
+
+# CloudTrail trail — tests DSL [missing_attrs] FAIL scenario:
+# enable_log_file_validation omitted; core::try returns false → policy fails.
+resource "aws_cloudtrail" "non_compliant_trail" {
+  name           = var.non_compliant_trail_name
+  s3_bucket_name = aws_s3_bucket.cloudtrail_logs.id
+  tags           = local.resource_tags
 
   depends_on = [aws_s3_bucket_policy.cloudtrail_logs]
 }
