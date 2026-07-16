@@ -11,14 +11,11 @@ terraform {
   }
 }
 
+# active_scenario == "provider_region_fail": region = null (attribute absent)
+# → core::try(attrs.region, "") returns "" → not in allowed_regions → policy fails.
+# All other scenarios: region = var.region (us-east-1) → policy passes.
 provider "aws" {
-  region = var.region
-}
-
-# Provider without region — tests DSL [missing_attrs] provider FAIL scenario:
-# core::try(attrs.region, "") returns "" → not in allowed_regions → policy fails.
-provider "aws" {
-  alias = "no_region"
+  region = var.active_scenario == "provider_region_fail" ? null : var.region
 }
 
 locals {
@@ -105,9 +102,11 @@ resource "aws_cloudtrail" "compliance_trail" {
   depends_on = [aws_s3_bucket_policy.cloudtrail_logs]
 }
 
-# CloudTrail trail — tests DSL [missing_attrs] FAIL scenario:
+# CloudTrail trail — tests DSL [missing_attrs] resource FAIL scenario.
+# Active only when active_scenario = "resource_cloudtrail_attr_fail".
 # enable_log_file_validation omitted; core::try returns false → policy fails.
 resource "aws_cloudtrail" "non_compliant_trail" {
+  count          = var.active_scenario == "resource_cloudtrail_attr_fail" ? 1 : 0
   name           = var.non_compliant_trail_name
   s3_bucket_name = aws_s3_bucket.cloudtrail_logs.id
   tags           = local.resource_tags

@@ -1,5 +1,16 @@
 # Copyright IBM Corp. 2025, 2026
 
+# Controls which test scenario is active for policy evaluation runs.
+# Default "none" means all resources pass; set to a scenario key to
+# activate exactly one fail path in isolation.
+#   resource_cloudtrail_attr_fail — CloudTrail without enable_log_file_validation (resource [missing_attrs] FAIL)
+#   provider_region_fail          — AWS provider with no region (provider [missing_attrs] FAIL)
+variable "active_scenario" {
+  description = "Test scenario to activate. 'none' = all-pass baseline."
+  type        = string
+  default     = "none"
+}
+
 # Variables for defining the environment
 variable "environment" {
   description = "Environment name"
