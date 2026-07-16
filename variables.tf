@@ -50,7 +50,7 @@ variable "s3_encryption_settings" {
 variable "cloudtrail_bucket_name" {
   description = "Name of the S3 bucket for CloudTrail logs"
   type        = string
-  default     = "security-compliance-cloudtrail-logs"
+  default     = "prod-cloudtrail-logs"
 }
 
 variable "cloudtrail_log_group_name" {

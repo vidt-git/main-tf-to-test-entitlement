@@ -55,6 +55,12 @@ resource "aws_s3_bucket" "cloudtrail_logs" {
   tags   = local.resource_tags
 }
 
+# Logging bucket required by the logging_bucket_validation policy
+resource "aws_s3_bucket" "cloudtrail_logs_logging" {
+  bucket = "${var.cloudtrail_bucket_name}-logs"
+  tags   = local.resource_tags
+}
+
 resource "aws_s3_bucket_policy" "cloudtrail_logs" {
   bucket = aws_s3_bucket.cloudtrail_logs.id
   policy = jsonencode({
