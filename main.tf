@@ -11,11 +11,16 @@ terraform {
   }
 }
 
-# active_scenario == "provider_region_fail": region set to a value outside
-# allowed_regions → core::try(attrs.region, "") returns it → policy fails.
-# All other scenarios: region = var.region (us-east-1) → policy passes.
 provider "aws" {
-  region = var.active_scenario == "provider_region_fail" ? "ap-southeast-1" : var.region
+  region = var.region
+}
+
+# Permanent aliased provider with a region outside allowed_regions.
+# tfpolicy only evaluates providers referenced by a resource in the plan,
+# so this is harmless until aws_iam_role.provider_region_test is active.
+provider "aws" {
+  alias  = "fail_region"
+  region = "ap-southeast-1"
 }
 
 locals {
@@ -87,6 +92,23 @@ resource "aws_s3_bucket_policy" "cloudtrail_logs" {
         }
       }
     ]
+  })
+}
+
+# IAM role that forces tfpolicy to evaluate aws.fail_region.
+# Active only when active_scenario = "provider_region_fail".
+# IAM is global so region doesn't affect plan validity.
+resource "aws_iam_role" "provider_region_test" {
+  count    = var.active_scenario == "provider_region_fail" ? 1 : 0
+  provider = aws.fail_region
+  name     = "provider-region-fail-test"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
   })
 }
 
