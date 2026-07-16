@@ -19,6 +19,10 @@
 #   datasource_pass                  — SNS topic "us-east-1-payments" + target_region="us-east-1" tag; data source found, prefix matches → passes ([get_datasource] PASS)
 #   datasource_fail                  — SNS topic "payment-alerts" + target_region="us-east-1" tag; data source found but prefix missing → fails ([get_datasource] FAIL)
 #   datasource_edge                  — SNS topic with no target_region tag; filter→"NONEXISTENT"→no ds match→null→guard fires ([get_datasource] edge case)
+#   op_locals_fail                   — aws_vpc with tags.Name="custom-vpc" (not in allowed_names); locals_in_op_policy fires on create → FAIL ([operations] locals)
+#   op_input_fail                    — aws_iam_role with name="dev-role" (no prod- prefix); input.environment="prod" default → input_in_op_policy fires on create → FAIL ([operations] input)
+#   op_diff_ops_create               — aws_kms_key created; kms_create_check fires → FAIL; kms_update_check (operations=["update"]) skipped ([operations] diff ops)
+#   op_same_op_worst_fails           — aws_iam_group name="test-ops-group"; iam_group_name_pass PASS + iam_group_strict_fail FAIL; worst result wins → FAIL ([operations] same op)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string

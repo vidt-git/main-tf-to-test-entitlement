@@ -294,3 +294,51 @@ resource "aws_sns_topic" "datasource_edge" {
   count = var.active_scenario == "datasource_edge" ? 1 : 0
   name  = "edge-no-region-tag"
 }
+
+# ─── [operations] scenarios ───────────────────────────────────────────────────
+
+# Scenario 1 — locals used in operation-based policy (op_locals_fail).
+# Active only when active_scenario = "op_locals_fail".
+# aws_vpc.tags.Name = "custom-vpc" is not in local.allowed_names
+# ["prod-vpc", "staging-vpc", "dev-vpc"] → locals_in_op_policy FAIL on create.
+resource "aws_vpc" "op_locals_fail" {
+  count      = var.active_scenario == "op_locals_fail" ? 1 : 0
+  cidr_block = "10.1.0.0/16"
+  tags       = merge(local.resource_tags, { Name = "custom-vpc" })
+}
+
+# Scenario 2 — input used in operation-based policy (op_input_fail).
+# Active only when active_scenario = "op_input_fail".
+# name = "dev-role" has no "prod-" prefix; input.environment defaults to "prod"
+# → condition input.environment != "prod" || regex("^prod-", ...) = false → FAIL on create.
+resource "aws_iam_role" "op_input_fail" {
+  count = var.active_scenario == "op_input_fail" ? 1 : 0
+  name  = "dev-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+# Scenario 3 — multiple policies with different operations (op_diff_ops_create).
+# Active only when active_scenario = "op_diff_ops_create".
+# New resource → create operation: kms_create_check fires → FAIL.
+# kms_update_check (operations=["update"]) is skipped entirely on create.
+resource "aws_kms_key" "op_diff_ops" {
+  count       = var.active_scenario == "op_diff_ops_create" ? 1 : 0
+  description = "op-diff-ops-test-key"
+}
+
+# Scenario 4 — multiple policies same operation, worst result wins (op_same_op_worst_fails).
+# Active only when active_scenario = "op_same_op_worst_fails".
+# name = "test-ops-group" (non-empty) → iam_group_name_pass condition = true → PASS.
+# iam_group_strict_fail condition = false → FAIL.
+# Both policies fire on create; worst result (FAIL) determines overall outcome.
+resource "aws_iam_group" "op_same_op" {
+  count = var.active_scenario == "op_same_op_worst_fails" ? 1 : 0
+  name  = "test-ops-group"
+}
