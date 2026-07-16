@@ -132,3 +132,14 @@ module "s3_compliant" {
   source        = "./modules/s3"
   sse_algorithm = "AES256"
 }
+
+# S3 module — tests DSL [missing_attrs] MODULE FAIL scenario.
+# Active only when active_scenario = "module_sse_fail".
+# sse_algorithm = "aws:kms"; core::try returns it → "aws:kms" != "AES256" → policy fails.
+# Note: omitting sse_algorithm can't trigger a real-run fail because Terraform
+# resolves the module variable default ("AES256") before policy evaluation.
+module "s3_non_compliant" {
+  count         = var.active_scenario == "module_sse_fail" ? 1 : 0
+  source        = "./modules/s3"
+  sse_algorithm = "aws:kms"
+}
