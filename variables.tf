@@ -9,6 +9,7 @@
 #   edge_case_empty_attrs         — CloudTrail with only required attrs (name + s3_bucket_name); entire optional attrs absent → core::try returns false → policy fails
 #   fifo_queue_pass               — FIFO SQS queue with visibility_timeout=60; ternary resolves min=60, 60>=60 → policy passes ([conditional_ternary] PASS)
 #   fifo_queue_fail               — FIFO SQS queue with visibility_timeout=30; ternary resolves min=60, 30<60  → policy fails  ([conditional_ternary] FAIL)
+#   provider_ternary_fail         — activates aws.fail_region (ap-southeast-1); not primary/secondary → ternary right branch → fails ([conditional_ternary] provider FAIL)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string

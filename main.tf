@@ -15,10 +15,12 @@ provider "aws" {
   region = var.region
 }
 
-# provider "aws" {
-#   alias  = "fail_region"           # scenario: provider_region_fail
-#   region = "ap-southeast-1"
-# }
+# Permanent aliased provider with a region outside both primary and secondary lists.
+# Harmless until a resource references it (tfpolicy only evaluates used providers).
+provider "aws" {
+  alias  = "fail_region"
+  region = "ap-southeast-1"
+}
 
 locals {
   # Create resource tags
@@ -92,19 +94,22 @@ resource "aws_s3_bucket_policy" "cloudtrail_logs" {
   })
 }
 
-# resource "aws_iam_role" "provider_region_test" {   # scenario: provider_region_fail
-#   count    = var.active_scenario == "provider_region_fail" ? 1 : 0
-#   provider = aws.fail_region
-#   name     = "provider-region-fail-test"
-#   assume_role_policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [{
-#       Action    = "sts:AssumeRole"
-#       Effect    = "Allow"
-#       Principal = { Service = "ec2.amazonaws.com" }
-#     }]
-#   })
-# }
+# IAM role that forces tfpolicy to evaluate aws.fail_region (ap-southeast-1).
+# Shared by provider_region_fail and provider_ternary_fail scenarios — both
+# need the same disallowed region to trigger their respective policy failures.
+resource "aws_iam_role" "provider_region_test" {
+  count    = contains(["provider_region_fail", "provider_ternary_fail"], var.active_scenario) ? 1 : 0
+  provider = aws.fail_region
+  name     = "provider-region-fail-test"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
 
 # CloudTrail trail — tests DSL [missing_attrs] PASS scenario:
 # core::try(attrs.enable_log_file_validation, false) returns true → policy passes.
