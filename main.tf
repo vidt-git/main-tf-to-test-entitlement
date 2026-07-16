@@ -11,11 +11,11 @@ terraform {
   }
 }
 
-# active_scenario == "provider_region_fail": region = null (attribute absent)
-# → core::try(attrs.region, "") returns "" → not in allowed_regions → policy fails.
+# active_scenario == "provider_region_fail": region set to a value outside
+# allowed_regions → core::try(attrs.region, "") returns it → policy fails.
 # All other scenarios: region = var.region (us-east-1) → policy passes.
 provider "aws" {
-  region = var.active_scenario == "provider_region_fail" ? null : var.region
+  region = var.active_scenario == "provider_region_fail" ? "ap-southeast-1" : var.region
 }
 
 locals {
