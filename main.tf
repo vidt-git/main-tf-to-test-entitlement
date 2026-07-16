@@ -204,3 +204,64 @@ resource "aws_cloudwatch_log_group" "ternary_null_condition_edge_case" {
   count = var.active_scenario == "ternary_null_condition_edge_case" ? 1 : 0
   name  = "edge-case-null-ternary-condition"
 }
+
+# Companion metric filter for the ternary edge case log group.
+# Required so metric_filter_cross_ref policy also passes for this scenario.
+resource "aws_cloudwatch_log_metric_filter" "ternary_edge_case" {
+  count          = var.active_scenario == "ternary_null_condition_edge_case" ? 1 : 0
+  name           = "ternary-edge-case-filter"
+  pattern        = "ERROR"
+  log_group_name = "edge-case-null-ternary-condition"
+  metric_transformation {
+    name      = "ErrorCount"
+    namespace = "TernaryEdgeCase"
+    value     = "1"
+  }
+}
+
+# ─── [cross_resource_reference] scenarios ────────────────────────────────────
+
+# PASS: log group + metric filter with non-empty pattern.
+# core::getresources finds the filter → has_filter=true, pattern="ERROR" → PASS.
+resource "aws_cloudwatch_log_group" "cross_ref_pass" {
+  count = var.active_scenario == "cross_ref_pass" ? 1 : 0
+  name  = "cross-ref-pass-group"
+}
+
+resource "aws_cloudwatch_log_metric_filter" "cross_ref_pass" {
+  count          = var.active_scenario == "cross_ref_pass" ? 1 : 0
+  name           = "cross-ref-pass-filter"
+  pattern        = "ERROR"
+  log_group_name = "cross-ref-pass-group"
+  metric_transformation {
+    name      = "ErrorCount"
+    namespace = "CrossRefTest"
+    value     = "1"
+  }
+}
+
+# FAIL: log group + metric filter with empty pattern.
+# core::getresources finds filter → has_filter=true, pattern="" → has_pattern=false → FAIL.
+resource "aws_cloudwatch_log_group" "cross_ref_fail" {
+  count = var.active_scenario == "cross_ref_fail" ? 1 : 0
+  name  = "cross-ref-fail-group"
+}
+
+resource "aws_cloudwatch_log_metric_filter" "cross_ref_fail" {
+  count          = var.active_scenario == "cross_ref_fail" ? 1 : 0
+  name           = "cross-ref-fail-filter"
+  pattern        = ""
+  log_group_name = "cross-ref-fail-group"
+  metric_transformation {
+    name      = "AllEvents"
+    namespace = "CrossRefTest"
+    value     = "1"
+  }
+}
+
+# EDGE CASE: log group with no metric filter at all.
+# core::getresources returns [] → has_filter=false → policy fails gracefully (no crash).
+resource "aws_cloudwatch_log_group" "cross_ref_edge" {
+  count = var.active_scenario == "cross_ref_edge" ? 1 : 0
+  name  = "cross-ref-edge-group"
+}

@@ -13,6 +13,9 @@
 #   module_ternary_pass           — S3 module with environment=prod, bucket_name_prefix=prod-data; ternary → "prod-" prefix required → passes ([conditional_ternary] module PASS, apply-time)
 #   module_ternary_fail              — S3 module with environment=prod, bucket_name_prefix=dev-data; ternary → "prod-" required but "dev-" found → fails ([conditional_ternary] module FAIL, apply-time)
 #   ternary_null_condition_edge_case — CloudWatch log group with no log_group_class or retention_in_days; core::try defaults both → ternary resolves to compliant branch → passes ([conditional_ternary] edge case)
+#   cross_ref_pass                   — CloudWatch log group + metric filter (pattern="ERROR"); cross-ref finds filter, pattern non-empty → passes ([cross_resource_reference] PASS)
+#   cross_ref_fail                   — CloudWatch log group + metric filter (pattern=""); cross-ref finds filter but pattern empty → fails ([cross_resource_reference] FAIL)
+#   cross_ref_edge                   — CloudWatch log group only, no metric filter; core::getresources → [] → has_filter=false → fails gracefully ([cross_resource_reference] edge case)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string
