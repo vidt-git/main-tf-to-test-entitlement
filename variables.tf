@@ -16,6 +16,9 @@
 #   cross_ref_pass                   — CloudWatch log group + metric filter (pattern="ERROR"); cross-ref finds filter, pattern non-empty → passes ([cross_resource_reference] PASS)
 #   cross_ref_fail                   — CloudWatch log group + metric filter (pattern=""); cross-ref finds filter but pattern empty → fails ([cross_resource_reference] FAIL)
 #   cross_ref_edge                   — CloudWatch log group only, no metric filter; core::getresources → [] → has_filter=false → fails gracefully ([cross_resource_reference] edge case)
+#   datasource_pass                  — SNS topic "us-east-1-payments" + target_region="us-east-1" tag; data source found, prefix matches → passes ([get_datasource] PASS)
+#   datasource_fail                  — SNS topic "payment-alerts" + target_region="us-east-1" tag; data source found but prefix missing → fails ([get_datasource] FAIL)
+#   datasource_edge                  — SNS topic with no target_region tag; filter→"NONEXISTENT"→no ds match→null→guard fires ([get_datasource] edge case)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string

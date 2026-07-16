@@ -265,3 +265,32 @@ resource "aws_cloudwatch_log_group" "cross_ref_edge" {
   count = var.active_scenario == "cross_ref_edge" ? 1 : 0
   name  = "cross-ref-edge-group"
 }
+
+# ─── [get_datasource] scenarios ──────────────────────────────────────────────
+
+# Always-present data source. core::getdatasource("aws_region", { name = "us-east-1" })
+# resolves to this when the topic's target_region tag = "us-east-1".
+# For the edge case (no tag), the filter value becomes "NONEXISTENT" and no
+# data source matches → core::getdatasource returns null → guard fires.
+data "aws_region" "current" {}
+
+# PASS: topic name starts with "us-east-1-"; data source found; prefix matches.
+resource "aws_sns_topic" "datasource_pass" {
+  count = var.active_scenario == "datasource_pass" ? 1 : 0
+  name  = "us-east-1-payments"
+  tags  = { target_region = "us-east-1" }
+}
+
+# FAIL: topic name missing region prefix; data source found but regex fails.
+resource "aws_sns_topic" "datasource_fail" {
+  count = var.active_scenario == "datasource_fail" ? 1 : 0
+  name  = "payment-alerts"
+  tags  = { target_region = "us-east-1" }
+}
+
+# EDGE CASE: no target_region tag → core::try → "NONEXISTENT" → no data source
+# matches filter → core::getdatasource → null → guard 1 fires with clear message.
+resource "aws_sns_topic" "datasource_edge" {
+  count = var.active_scenario == "datasource_edge" ? 1 : 0
+  name  = "edge-no-region-tag"
+}
