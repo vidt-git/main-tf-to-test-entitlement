@@ -1,14 +1,15 @@
 # Copyright IBM Corp. 2025, 2026
 
-# terraform {
+terraform {
 
-#   cloud {
-#     organization = "terraform-policy-test-org"
-#     workspaces {
-#       name = "policy-alpha-test-1"
-#     }
-#   }
-# }
+  cloud {
+    hostname = "tfcdev-79d3f120.ngrok.app"
+    organization = "hashicorp"
+    workspaces {
+      name = "main-tf-to-test-entitlement"
+    }
+  }
+}
 
 provider "aws" {
   region = var.region
@@ -47,3 +48,48 @@ module "ec2_instance" {
 # module "dynamodb_table" {
 #   source = "./modules/dynamodb"
 # }
+
+# S3 bucket for CloudTrail logs
+resource "aws_s3_bucket" "cloudtrail_logs" {
+  bucket = var.cloudtrail_bucket_name
+  tags   = local.resource_tags
+}
+
+resource "aws_s3_bucket_policy" "cloudtrail_logs" {
+  bucket = aws_s3_bucket.cloudtrail_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AWSCloudTrailAclCheck"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.cloudtrail_logs.arn
+      },
+      {
+        Sid       = "AWSCloudTrailWrite"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.cloudtrail_logs.arn}/AWSLogs/*"
+        Condition = {
+          StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" }
+        }
+      }
+    ]
+  })
+}
+
+# CloudTrail trail — tests DSL [missing_attrs]: policy uses
+# core::try(attrs.enable_log_file_validation, false) and this resource
+# explicitly sets it to true, so the policy should pass.
+resource "aws_cloudtrail" "compliance_trail" {
+  name                          = var.compliance_trail_name
+  s3_bucket_name                = aws_s3_bucket.cloudtrail_logs.id
+  enable_log_file_validation    = true
+  is_multi_region_trail         = true
+  tags                          = local.resource_tags
+
+  depends_on = [aws_s3_bucket_policy.cloudtrail_logs]
+}
