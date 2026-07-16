@@ -4,13 +4,14 @@
 # Default "none" means all resources pass; set to a scenario key to
 # activate exactly one fail path in isolation.
 #   resource_cloudtrail_attr_fail — CloudTrail without enable_log_file_validation (resource [missing_attrs] FAIL)
-#   provider_region_fail          — activates aws.fail_region (ap-southeast-1, not in allowed list) via IAM role (provider [missing_attrs] FAIL)
+#   provider_region_fail          — main provider region → ap-southeast-1 (not in allowed list) → region_validation fails (provider [missing_attrs] FAIL)
 #   module_sse_fail               — S3 module with sse_algorithm = "aws:kms"; core::try returns it → != "AES256" → policy fails (module [missing_attrs] FAIL)
 #   edge_case_empty_attrs         — CloudTrail with only required attrs (name + s3_bucket_name); entire optional attrs absent → core::try returns false → policy fails
 #   fifo_queue_pass               — FIFO SQS queue with visibility_timeout=60; ternary resolves min=60, 60>=60 → policy passes ([conditional_ternary] PASS)
 #   fifo_queue_fail               — FIFO SQS queue with visibility_timeout=30; ternary resolves min=60, 30<60  → policy fails  ([conditional_ternary] FAIL)
-#   provider_ternary_fail         — activates aws.fail_region (ap-southeast-1); not primary/secondary → ternary right branch → fails ([conditional_ternary] provider FAIL)
+#   provider_ternary_fail         — main provider region → ap-southeast-1; not primary/secondary → ternary right branch → false → fails ([conditional_ternary] provider FAIL)
 #   module_ternary_pass           — S3 module with environment=prod, bucket_name_prefix=prod-data; ternary → "prod-" prefix required → passes ([conditional_ternary] module PASS, apply-time)
+#   module_ternary_fail           — S3 module with environment=prod, bucket_name_prefix=dev-data; ternary → "prod-" required but "dev-" found → fails ([conditional_ternary] module FAIL, apply-time)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string

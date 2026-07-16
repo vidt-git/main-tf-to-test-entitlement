@@ -12,15 +12,14 @@ terraform {
 }
 
 provider "aws" {
-  region = var.region
+  # Switch to ap-southeast-1 for provider fail scenarios; all others use the workspace variable.
+  region = contains(["provider_region_fail", "provider_ternary_fail"], var.active_scenario) ? "ap-southeast-1" : var.region
 }
 
-# Permanent aliased provider with a region outside both primary and secondary lists.
-# Harmless until a resource references it (tfpolicy only evaluates used providers).
-provider "aws" {
-  alias  = "fail_region"
-  region = "ap-southeast-1"
-}
+# provider "aws" {  # scenario: provider_region_fail / provider_ternary_fail
+#   alias  = "fail_region"
+#   region = "ap-southeast-1"
+# }
 
 locals {
   # Create resource tags
@@ -94,22 +93,12 @@ resource "aws_s3_bucket_policy" "cloudtrail_logs" {
   })
 }
 
-# IAM role that forces tfpolicy to evaluate aws.fail_region (ap-southeast-1).
-# Shared by provider_region_fail and provider_ternary_fail scenarios — both
-# need the same disallowed region to trigger their respective policy failures.
-resource "aws_iam_role" "provider_region_test" {
-  count    = contains(["provider_region_fail", "provider_ternary_fail"], var.active_scenario) ? 1 : 0
-  provider = aws.fail_region
-  name     = "provider-region-fail-test"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
-}
+# resource "aws_iam_role" "provider_region_test" {  # no longer needed: provider region is now conditional
+#   count    = contains(["provider_region_fail", "provider_ternary_fail"], var.active_scenario) ? 1 : 0
+#   provider = aws.fail_region
+#   name     = "provider-region-fail-test"
+#   ...
+# }
 
 # CloudTrail trail — tests DSL [missing_attrs] PASS scenario:
 # core::try(attrs.enable_log_file_validation, false) returns true → policy passes.
@@ -169,6 +158,18 @@ resource "aws_sqs_queue" "fifo_compliant" {
 module "s3_compliant" {
   source        = "./modules/s3"
   sse_algorithm = "AES256"
+}
+
+# S3 module — tests DSL [conditional_ternary] MODULE FAIL scenario.
+# Active only when active_scenario = "module_ternary_fail".
+# environment=prod → ternary → required_prefix="prod-"; bucket_name_prefix="dev-data" fails.
+# Evaluated at apply time (module_policy attrs not available at plan).
+module "s3_prod_non_compliant" {
+  count              = var.active_scenario == "module_ternary_fail" ? 1 : 0
+  source             = "./modules/s3"
+  sse_algorithm      = "AES256"
+  environment        = "prod"
+  bucket_name_prefix = "dev-data"
 }
 
 # S3 module — tests DSL [conditional_ternary] MODULE PASS scenario.
