@@ -194,3 +194,13 @@ module "s3_non_compliant" {
   source        = "./modules/s3"
   sse_algorithm = "aws:kms"
 }
+
+# CloudWatch log group — tests DSL [conditional_ternary] EDGE CASE scenario.
+# Active only when active_scenario = "ternary_null_condition_edge_case".
+# Neither log_group_class nor retention_in_days is set:
+#   log_group_class absent   → core::try → "STANDARD" → ternary → min_retention=30
+#   retention_in_days absent → core::try → 0 (never expire) → 0==0 → is_compliant=true → PASS
+resource "aws_cloudwatch_log_group" "ternary_null_condition_edge_case" {
+  count = var.active_scenario == "ternary_null_condition_edge_case" ? 1 : 0
+  name  = "edge-case-null-ternary-condition"
+}

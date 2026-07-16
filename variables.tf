@@ -11,7 +11,8 @@
 #   fifo_queue_fail               — FIFO SQS queue with visibility_timeout=30; ternary resolves min=60, 30<60  → policy fails  ([conditional_ternary] FAIL)
 #   provider_ternary_fail         — main provider region → ap-southeast-1; not primary/secondary → ternary right branch → false → fails ([conditional_ternary] provider FAIL)
 #   module_ternary_pass           — S3 module with environment=prod, bucket_name_prefix=prod-data; ternary → "prod-" prefix required → passes ([conditional_ternary] module PASS, apply-time)
-#   module_ternary_fail           — S3 module with environment=prod, bucket_name_prefix=dev-data; ternary → "prod-" required but "dev-" found → fails ([conditional_ternary] module FAIL, apply-time)
+#   module_ternary_fail              — S3 module with environment=prod, bucket_name_prefix=dev-data; ternary → "prod-" required but "dev-" found → fails ([conditional_ternary] module FAIL, apply-time)
+#   ternary_null_condition_edge_case — CloudWatch log group with no log_group_class or retention_in_days; core::try defaults both → ternary resolves to compliant branch → passes ([conditional_ternary] edge case)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string
