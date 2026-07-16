@@ -15,13 +15,10 @@ provider "aws" {
   region = var.region
 }
 
-# Permanent aliased provider with a region outside allowed_regions.
-# tfpolicy only evaluates providers referenced by a resource in the plan,
-# so this is harmless until aws_iam_role.provider_region_test is active.
-provider "aws" {
-  alias  = "fail_region"
-  region = "ap-southeast-1"
-}
+# provider "aws" {
+#   alias  = "fail_region"           # scenario: provider_region_fail
+#   region = "ap-southeast-1"
+# }
 
 locals {
   # Create resource tags
@@ -95,22 +92,19 @@ resource "aws_s3_bucket_policy" "cloudtrail_logs" {
   })
 }
 
-# IAM role that forces tfpolicy to evaluate aws.fail_region.
-# Active only when active_scenario = "provider_region_fail".
-# IAM is global so region doesn't affect plan validity.
-resource "aws_iam_role" "provider_region_test" {
-  count    = var.active_scenario == "provider_region_fail" ? 1 : 0
-  provider = aws.fail_region
-  name     = "provider-region-fail-test"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
-}
+# resource "aws_iam_role" "provider_region_test" {   # scenario: provider_region_fail
+#   count    = var.active_scenario == "provider_region_fail" ? 1 : 0
+#   provider = aws.fail_region
+#   name     = "provider-region-fail-test"
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [{
+#       Action    = "sts:AssumeRole"
+#       Effect    = "Allow"
+#       Principal = { Service = "ec2.amazonaws.com" }
+#     }]
+#   })
+# }
 
 # CloudTrail trail — tests DSL [missing_attrs] PASS scenario:
 # core::try(attrs.enable_log_file_validation, false) returns true → policy passes.
@@ -124,14 +118,17 @@ resource "aws_cloudtrail" "compliance_trail" {
   depends_on = [aws_s3_bucket_policy.cloudtrail_logs]
 }
 
-# CloudTrail trail — tests DSL [missing_attrs] resource FAIL scenario.
-# Active only when active_scenario = "resource_cloudtrail_attr_fail".
-# enable_log_file_validation omitted; core::try returns false → policy fails.
-resource "aws_cloudtrail" "non_compliant_trail" {
-  count          = var.active_scenario == "resource_cloudtrail_attr_fail" ? 1 : 0
-  name           = var.non_compliant_trail_name
-  s3_bucket_name = aws_s3_bucket.cloudtrail_logs.id
-  tags           = local.resource_tags
+# resource "aws_cloudtrail" "non_compliant_trail" {  # scenario: resource_cloudtrail_attr_fail
+#   count          = var.active_scenario == "resource_cloudtrail_attr_fail" ? 1 : 0
+#   name           = var.non_compliant_trail_name
+#   s3_bucket_name = aws_s3_bucket.cloudtrail_logs.id
+#   tags           = local.resource_tags
+#   depends_on     = [aws_s3_bucket_policy.cloudtrail_logs]
+# }
 
-  depends_on = [aws_s3_bucket_policy.cloudtrail_logs]
+# S3 module — tests DSL [missing_attrs] MODULE PASS scenario:
+# core::try(attrs.sse_algorithm, "AES256") returns "AES256" → policy passes.
+module "s3_compliant" {
+  source        = "./modules/s3"
+  sse_algorithm = "AES256"
 }
