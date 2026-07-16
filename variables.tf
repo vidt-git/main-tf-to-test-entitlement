@@ -10,6 +10,7 @@
 #   fifo_queue_pass               — FIFO SQS queue with visibility_timeout=60; ternary resolves min=60, 60>=60 → policy passes ([conditional_ternary] PASS)
 #   fifo_queue_fail               — FIFO SQS queue with visibility_timeout=30; ternary resolves min=60, 30<60  → policy fails  ([conditional_ternary] FAIL)
 #   provider_ternary_fail         — activates aws.fail_region (ap-southeast-1); not primary/secondary → ternary right branch → fails ([conditional_ternary] provider FAIL)
+#   module_ternary_pass           — S3 module with environment=prod, bucket_name_prefix=prod-data; ternary → "prod-" prefix required → passes ([conditional_ternary] module PASS, apply-time)
 variable "active_scenario" {
   description = "Test scenario to activate. 'none' = all-pass baseline."
   type        = string

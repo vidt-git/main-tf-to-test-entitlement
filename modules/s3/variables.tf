@@ -3,3 +3,15 @@ variable "sse_algorithm" {
   type        = string
   default     = "AES256"
 }
+
+variable "environment" {
+  description = "Deployment environment (prod, staging, dev)"
+  type        = string
+  default     = "dev"
+}
+
+variable "bucket_name_prefix" {
+  description = "Prefix for the S3 bucket name"
+  type        = string
+  default     = "dev-"
+}

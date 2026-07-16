@@ -171,6 +171,18 @@ module "s3_compliant" {
   sse_algorithm = "AES256"
 }
 
+# S3 module — tests DSL [conditional_ternary] MODULE PASS scenario.
+# Active only when active_scenario = "module_ternary_pass".
+# environment=prod → ternary → required_prefix="prod-"; bucket_name_prefix="prod-data" passes.
+# Evaluated at apply time (module_policy attrs not available at plan).
+module "s3_prod_compliant" {
+  count              = var.active_scenario == "module_ternary_pass" ? 1 : 0
+  source             = "./modules/s3"
+  sse_algorithm      = "AES256"
+  environment        = "prod"
+  bucket_name_prefix = "prod-data"
+}
+
 # S3 module — tests DSL [missing_attrs] MODULE FAIL scenario.
 # Active only when active_scenario = "module_sse_fail".
 # sse_algorithm = "aws:kms"; core::try returns it → "aws:kms" != "AES256" → policy fails.
