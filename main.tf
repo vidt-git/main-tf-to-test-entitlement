@@ -43,11 +43,19 @@ locals {
 #   source = "./modules/cloudfront"
 # }
 
-# Create an EC2 instance using the new module
-module "ec2_instance" {
-  source        = "./modules/ec2"
-  instance_type = "t2.micro"
+# EC2 module removed: the workspace AWS role denies ec2:DescribeInstances, so the
+# instance can't be refreshed. Forget it from state instead of destroying it.
+# module "ec2_instance" {
+#   source        = "./modules/ec2"
+#   instance_type = "t2.micro"
+# }
 
+removed {
+  from = module.ec2_instance
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 # Create a DynamoDB table with autoscaling policies
